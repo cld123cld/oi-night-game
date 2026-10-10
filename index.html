@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>集训之夜 · 监控室</title>
+    <meta name="description" content="一个 OIer 做的生存小游戏。你是机房里最后一个还在改代码的人，用监控撑过 23 个小时。">
+    <meta name="theme-color" content="#050505">
+    <meta property="og:title" content="集训之夜 · 监控室">
+    <meta property="og:description" content="撑过 23 个小时，别让教练抓到你。">
+    <meta property="og:type" content="website">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="crt-overlay"></div>
+<div id="danger-vignette"></div>
+<div id="ach-toast"></div>
+
+<!-- ===================== 开始界面 ===================== -->
+<div id="start-screen">
+    <div class="start-box">
+        <h1 class="title">集 训 之 夜</h1>
+        <p class="subtitle">OI 集训监控模拟 · 从凌晨 0:00 撑到晚上 23:00</p>
+
+        <div class="rules">
+            <h3>▍玩法说明</h3>
+            <ol>
+                <li>你是机房里最后一个还在改代码的人。教练不会让你熬夜 —— 但你还有题没过。</li>
+                <li>用监控盯住各个角落，撑过 <b>23 个小时</b>（0:00 → 23:00）就算赢。</li>
+                <li>底部可以切换 <b>监控模式</b> 和 <b>刷题模式</b>。刷题时你看不见监控，但那是躲副教练的唯一办法。</li>
+            </ol>
+
+            <h3>▍三个麻烦</h3>
+            <ul class="roles">
+                <li>
+                    <span class="r-name" style="color:#ff5555">主教练</span>
+                    走 <b>办公室 → 走廊 → 大门</b>。他到门口时，<b>关上大门</b>能挡住他，但门会被撞掉耐久。
+                    耐久归零就破门。想修门必须<b>先开门</b>——修的时候如果他在门口，直接没了。
+                </li>
+                <li>
+                    <span class="r-name" style="color:#ffcc00">副教练</span>
+                    走 <b>后窗 → 你的身后</b>。<b>关门对他没用</b>。
+                    他溜到你身后时，你必须在 <b>7 秒内</b> 切到刷题模式并<b>保持</b>，让他以为你在学习。
+                    <b>盯着摄像头吓不退他。</b>只有刷题时他不会靠近。
+                </li>
+                <li>
+                    <span class="r-name" style="color:#66ccff">同学</span>
+                    待在 <b>集训教室</b>。你不看教室，他的<b>捣乱条</b>就一直涨；
+                    满了就 <b>JC 你</b>：大门被强行打开，而且主教练会前进一步。
+                    盯着教室能把捣乱条压下去 —— 但那时你就看不见大门和身后了。
+                </li>
+            </ul>
+
+            <h3>▍操作</h3>
+            <ul class="keys">
+                <li><b>1~6 号按钮</b>：切换摄像头（也可以用键盘 1-6）</li>
+                <li><b>空格</b>：切换 监控 / 刷题</li>
+                <li><b>Q</b>：开关大门　<b>E</b>：维修大门</li>
+            </ul>
+        </div>
+
+        <h3 class="diff-title">▍选择难度</h3>
+        <div class="diff-grid" id="diff-grid">
+            <div class="diff-card" data-diff="easy">
+                <div class="d-name">简 单</div>
+                <div class="d-desc">教练很少动，同学基本不闹。用来熟悉操作。</div>
+                <div class="d-stat">每小时 32 秒 · 模拟通关率 ~95%</div>
+            </div>
+            <div class="diff-card selected" data-diff="normal">
+                <div class="d-name">普 通</div>
+                <div class="d-desc">三条线都开始动，但都留有余地。标准体验。</div>
+                <div class="d-stat">每小时 28 秒 · 模拟通关率 ~75%</div>
+            </div>
+            <div class="diff-card" data-diff="hard">
+                <div class="d-name">困 难</div>
+                <div class="d-desc">教练频繁来回，你得不停地在三件事之间做取舍。</div>
+                <div class="d-stat">每小时 25 秒 · 模拟通关率 ~50%</div>
+            </div>
+            <div class="diff-card" data-diff="hell">
+                <div class="d-name">地 狱</div>
+                <div class="d-desc">几乎没喘息。每一次切摄像头都要算清楚。</div>
+                <div class="d-stat">每小时 22 秒 · 模拟通关率 ~20%</div>
+            </div>
+            <div class="diff-card" data-diff="epic">
+                <div class="d-name">史 诗</div>
+                <div class="d-desc">给想折磨自己的人。模拟里能过，真人很难。</div>
+                <div class="d-stat">每小时 19 秒 · 模拟通关率 ~5%</div>
+            </div>
+        </div>
+
+        <p class="balance-note">
+            通关率是用模拟器跑 5000 局、由"零延迟最优玩家"打出来的，真人会明显更低。<br>
+            一条保命规则：主教练堵在门口时，同学 JC <b>不会</b>把门打开 —— 否则你在刷题躲副教练时会被无解秒杀。
+        </p>
+
+        <div class="panel-row">
+            <div class="panel">
+                <h3 class="p-title">▍成就墙</h3>
+                <div id="ach-wall" class="ach-wall"></div>
+            </div>
+            <div class="panel">
+                <h3 class="p-title">▍最佳成绩</h3>
+                <div id="best-table" class="best-table"></div>
+                <button id="btn-clear" class="btn-clear">清除存档</button>
+            </div>
+        </div>
+
+        <button id="btn-start">进 入 监 控 室</button>
+    </div>
+</div>
+
+<!-- ===================== 游戏界面 ===================== -->
+<div id="game-container" class="hidden">
+
+    <header id="status-bar">
+        <div class="logo">机房监控 · V2.0</div>
+        <div class="clock-box">
+            时间 <span id="clock">0:00</span> <span id="clock-period" class="period">凌晨</span>
+        </div>
+        <div class="meter">
+            <span>大门耐久</span>
+            <div class="bar"><div id="dur-fill" class="fill"></div></div>
+        </div>
+        <div class="meter" id="cls-wrap">
+            <span>同学捣乱</span>
+            <div class="bar"><div id="cls-fill" class="fill cls"></div></div>
+        </div>
+        <div class="diff-label">难度：<span id="diff-label">普通</span></div>
+    </header>
+
+    <main id="monitor-screen">
+        <div class="cam-viewer">
+            <div id="current-cam-feed" class="feed-content">
+                <div class="static-noise"></div>
+
+                <div class="cam-info">
+                    <h2 id="cam-name">1号 · 集训教室</h2>
+                    <div class="rec-dot">● 录制中</div>
+                </div>
+
+                <div id="cam-visuals"></div>
+
+                <div id="cam-log"></div>
+
+                <div id="sub-warning" class="hidden">
+                    ⚠ 副教练在你身后！立刻刷题！
+                    <div class="sub-bar"><div id="sub-fill"></div></div>
+                    <div class="sub-time"><span id="sub-seconds">7</span> 秒</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="cam-map">
+            <button class="cam-btn active" data-cam="classroom"><b>1号</b> 集训教室</button>
+            <button class="cam-btn" data-cam="office"><b>2号</b> 教练办公室</button>
+            <button class="cam-btn" data-cam="hallway"><b>3号</b> 一楼走廊</button>
+            <button class="cam-btn" data-cam="door"><b>4号</b> 大门入口</button>
+            <button class="cam-btn" data-cam="window"><b>5号</b> 后窗</button>
+            <button class="cam-btn" data-cam="behind"><b>6号</b> 你的身后</button>
+        </div>
+    </main>
+
+    <!-- 刷题界面 -->
+    <div id="study-screen" class="hidden">
+        <div class="ide-container">
+            <div class="ide-header">
+                <span>main.cpp - 深夜刷题中</span>
+                <div class="ide-controls">
+                    <button id="btn-exit-study" class="exit-study-btn">退出刷题 (空格)</button>
+                    <div class="dots">
+                        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="code-editor">
+                <pre><code><span class="keyword">#include</span> <span class="string">&lt;bits/stdc++.h&gt;</span>
+<span class="keyword">using namespace</span> std;
+
+<span class="type">int</span> <span class="function">main</span>() {
+    <span class="comment">// 还有三道题没过，不能睡。</span>
+    <span class="keyword">while</span> (<span class="boolean">true</span>) {
+        <span class="comment">// 假装在学习，别让教练发现……</span>
+    }
+    <span class="keyword">return</span> <span class="number">0</span>;
+}</code></pre>
+            </div>
+            <div id="study-progress-box" class="hidden">
+                <div class="sp-label">伪装进度（副教练正在观察你）</div>
+                <div class="sp-bar"><div id="study-progress-fill"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <footer id="control-panel">
+        <div class="panel-left">
+            <button id="btn-toggle-game" class="btn-mode">👁 切换至刷题模式 (空格)</button>
+        </div>
+        <div class="panel-right">
+            <button id="btn-door" class="btn-action door-btn">
+                <span id="door-status-text">开启</span> 大门 (Q)
+            </button>
+            <button id="btn-repair" class="btn-action repair-btn">维修大门 (E)</button>
+        </div>
+    </footer>
+</div>
+
+<!-- ===================== 结局 ===================== -->
+<div id="modal" class="hidden">
+    <div class="modal-content" id="modal-box">
+        <h2 id="modal-title"></h2>
+        <p id="modal-msg"></p>
+        <div id="modal-stat" class="modal-stat"></div>
+        <div id="score-box" class="score-box"></div>
+        <div id="run-ach" class="run-ach"></div>
+        <button id="btn-restart" class="btn-restart">重新开始</button>
+        <button id="btn-back" class="btn-restart btn-back">返回主界面</button>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
