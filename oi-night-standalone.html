@@ -1622,6 +1622,11 @@ function updateClock() {
 }
 
 function updateBars() {
+    /* bo 必须在最前面声明 —— 下面多处用到它。
+       曾经把它放在函数中段，结果前面的代码访问它触发 TDZ 报错，
+       导致 startGame 中断、所有定时器都没设上，游戏完全静止。 */
+    const bo = state.blackout;
+
     // 大门（断电时隐藏真实数值）
     dom['dur-fill'].style.width = bo ? '0%' : state.doorDurability + '%';
     dom['dur-fill'].style.backgroundColor =
@@ -1632,7 +1637,6 @@ function updateBars() {
     dom['cls-fill'].style.backgroundColor = c > 70 ? '#ff3333' : (c > 40 ? '#ffcc00' : '#66ccff');
 
     /* 断电时：所有状态对外不可见（这是断电的全部意义） */
-    const bo = state.blackout;
     dom['status-bar'].classList.toggle('blackout', bo);
 
     // 题目进度（填满 = 达标）
