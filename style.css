@@ -578,3 +578,24 @@ body {
 @media (max-width: 760px) {
     .bd-row { grid-template-columns: 30px 46px 56px 40px 1fr; font-size: .7em; }
 }
+
+/* ============ 提示设置面板 ============ */
+.opt-panel { border-left-color: #5a4a2a; margin-bottom: 20px; }
+.opt-row { display: flex; gap: 12px; align-items: flex-start; padding: 9px 0;
+           border-bottom: 1px dashed #222; cursor: pointer; }
+.opt-row:last-of-type { border-bottom: none; }
+.opt-row input { margin-top: 3px; width: 16px; height: 16px; accent-color: #3fb950; cursor: pointer; }
+.opt-row b { color: #ddd; font-size: .88em; display: block; }
+.opt-row em { display: block; color: #6a7a6a; font-size: .74em; font-style: normal;
+              line-height: 1.6; margin-top: 3px; }
+.opt-row em.warn-em { color: #9a7a4a; }
+.opt-note { font-size: .74em; color: #5a6a5a; line-height: 1.7; margin: 10px 0 0;
+            border-left: 2px solid #3a3a2a; padding-left: 10px; }
+.opt-note b { color: #8ab; }
+
+/* ============ 同学状态模糊提示 ============ */
+.cls-warn { font-size: .74em; padding: 2px 8px; margin-left: 8px; white-space: nowrap; }
+.cls-warn.off { display: none; }
+.cls-warn.lv1 { color: #4a5a4a; }
+.cls-warn.lv2 { color: #aa8822; }
+.cls-warn.lv3 { color: var(--red); font-weight: bold; animation: blink 1s infinite; }

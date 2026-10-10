@@ -148,6 +148,37 @@
             <button id="btn-clear-board" class="btn-clear">清空排行榜</button>
         </div>
 
+        <div class="panel opt-panel">
+            <h3 class="p-title">▍提示强度（影响难度）</h3>
+            <label class="opt-row">
+                <input type="checkbox" id="opt-hideCls" checked>
+                <span>
+                    <b>隐藏同学捣乱数值</b>
+                    <em>隐藏后只能靠看教室画面判断：安静坐着 / 有动静 / 站起来走向门口。
+                        再也不会出现"盯着进度条做算术"的最优解。</em>
+                </span>
+            </label>
+            <label class="opt-row">
+                <input type="checkbox" id="opt-camAlert">
+                <span>
+                    <b>摄像头警报灯（主教练 / 同学）</b>
+                    <em class="warn-em">开着会毁掉游戏 —— 六个按钮哪个亮就看哪个，
+                        不用理解机制也能玩。默认关闭。</em>
+                </span>
+            </label>
+            <label class="opt-row">
+                <input type="checkbox" id="opt-hideNum">
+                <span>
+                    <b>隐藏题目进度数值</b>
+                    <em>进度条也隐藏，只能凭感觉判断刷够了没。</em>
+                </span>
+            </label>
+            <p class="opt-note">
+                注：<b>副教练在你身后的警报永远保留</b>。他给你 7 秒倒计时，
+                你不看摄像头根本看不见他 —— 没有提示就是纯随机死亡，那不叫难度。
+            </p>
+        </div>
+
         <button id="btn-start">进 入 监 控 室</button>
     </div>
 </div>
@@ -168,6 +199,7 @@
             <span>同学捣乱</span>
             <div class="bar"><div id="cls-fill" class="fill cls"></div></div>
         </div>
+        <div id="cls-warn" class="cls-warn off"></div>
         <div class="meter">
             <span>题目进度</span>
             <div class="bar"><div id="prog-fill" class="fill prog"></div></div>

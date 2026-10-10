@@ -127,6 +127,29 @@ ACH.forEach(a => { ACH_BY_ID[a.id] = a; });
 const SAVE_KEY = 'oi-night-save-v1';
 let save = { unlocked: {}, best: {}, runs: 0, wins: 0, noJcRuns: 0, board: [] };
 
+/* ---------------- 提示设置（存到 localStorage） ----------------
+   hideCls  : 隐藏同学捣乱数值，只看教室画面里的行为
+   camAlert : 摄像头按钮上的警报灯（主教练/同学）
+   hideNum  : 隐藏题目进度数值
+--------------------------------------------------------------- */
+const OPT_KEY = 'oi-night-opt-v1';
+let OPT = { hideCls: true, camAlert: false, hideNum: false };
+
+function loadOpt() {
+    try {
+        const raw = localStorage.getItem(OPT_KEY);
+        if (raw) { const o = JSON.parse(raw); if (o && typeof o === 'object') OPT = Object.assign(OPT, o); }
+    } catch (e) {}
+    syncOptUI();
+}
+function writeOpt() { try { localStorage.setItem(OPT_KEY, JSON.stringify(OPT)); } catch (e) {} }
+function syncOptUI() {
+    ['hideCls', 'camAlert', 'hideNum'].forEach(k => {
+        const el = dom['opt-' + k];
+        if (el) el.checked = !!OPT[k];
+    });
+}
+
 function loadSave() {
     try {
         const raw = localStorage.getItem(SAVE_KEY);
@@ -337,7 +360,8 @@ function cacheDom() {
      'btn-restart', 'btn-back', 'cam-map',
      'ach-wall', 'best-table', 'btn-clear', 'ach-toast', 'score-box', 'run-ach',
      'prog-fill', 'prog-text', 'sp-num', 'sp-target', 'sp-bar-fill', 'flow-tag',
-     'board-list', 'btn-clear-board', 'status-bar'
+     'board-list', 'btn-clear-board', 'status-bar', 'cls-warn',
+     'opt-hideCls', 'opt-camAlert', 'opt-hideNum'
     ].forEach(id => { dom[id] = $(id); });
     dom.camBtns = document.querySelectorAll('.cam-btn');
 }
@@ -402,6 +426,16 @@ function bindStart() {
             if (confirm('确定清空排行榜？')) clearBoard();
         });
     }
+    /* 提示开关 */
+    ['hideCls', 'camAlert', 'hideNum'].forEach(k => {
+        const el = dom['opt-' + k];
+        if (!el) return;
+        el.addEventListener('change', () => {
+            OPT[k] = el.checked;
+            writeOpt();
+            if (state) updateBars();
+        });
+    });
 }
 
 function resetUI() {
@@ -772,10 +806,26 @@ function updateBars() {
     dom['dur-fill'].style.width = bo ? '0%' : state.doorDurability + '%';
     dom['dur-fill'].style.backgroundColor =
         bo ? '#222' : (state.doorDurability < 30 ? '#ff3333' : '#00ff41');
-    // 同学（断电时隐藏）
+    // 同学（断电时隐藏；hideCls 时用模糊词代替数值）
     const c = bo ? 0 : Math.min(100, state.cls);
-    dom['cls-fill'].style.width = c + '%';
-    dom['cls-fill'].style.backgroundColor = c > 70 ? '#ff3333' : (c > 40 ? '#ffcc00' : '#66ccff');
+    if (OPT.hideCls || bo) {
+        dom['cls-wrap'].style.display = 'none';          // 整条隐藏
+    } else {
+        dom['cls-wrap'].style.display = '';
+        dom['cls-fill'].style.width = c + '%';
+        dom['cls-fill'].style.backgroundColor = c > 70 ? '#ff3333' : (c > 40 ? '#ffcc00' : '#66ccff');
+    }
+    // 模糊警告：不显示数值，只在危险时给一个词
+    const cw = dom['cls-warn'];
+    if (cw) {
+        if (OPT.hideCls && !bo) {
+            if (state.cls >= 85)      { cw.className = 'cls-warn lv3'; cw.textContent = '同学站起来走向门口'; }
+            else if (state.cls >= 60) { cw.className = 'cls-warn lv2'; cw.textContent = '同学有动静'; }
+            else                      { cw.className = 'cls-warn lv1'; cw.textContent = '同学安静'; }
+        } else {
+            cw.className = 'cls-warn off'; cw.textContent = '';
+        }
+    }
 
     /* 断电时：所有状态对外不可见（这是断电的全部意义） */
     dom['status-bar'].classList.toggle('blackout', bo);
@@ -786,8 +836,11 @@ function updateBars() {
     const done = state.progress >= D.target;
     dom['prog-fill'].style.backgroundColor = done ? '#ffcc00' : '#66ccff';
     dom['prog-fill'].style.boxShadow = '0 0 6px ' + (done ? '#ffcc00' : '#66ccff');
-    dom['prog-text'].textContent = bo ? '？ / ？' : (Math.floor(state.progress) + ' / ' + D.target);
-    dom['prog-text'].style.color = bo ? '#555' : (done ? '#ffcc00' : '#8ab');
+    dom['prog-text'].textContent = (bo || OPT.hideNum)
+        ? '？ / ？'
+        : (Math.floor(state.progress) + ' / ' + D.target);
+    dom['prog-text'].style.color = (bo || OPT.hideNum) ? '#555' : (done ? '#ffcc00' : '#8ab');
+    dom['prog-fill'].style.display = (bo || OPT.hideNum) ? 'none' : '';
 
     // 副教练危机
     const inCrisis = state.coachSubPos === 1;
@@ -814,16 +867,19 @@ function updateBars() {
             : `专注中 ${state.streak}s ／ ${FLOW_SEC}s 后进入心流（效率 ×${FLOW_MULT}）`;
     }
 
-    // 摄像头按钮上的警报（断电时一律不亮）
+    // 摄像头按钮上的警报
     dom.camBtns.forEach(b => {
         const cam = b.dataset.cam;
         let need = false;
-        if (bo) { const o = b.querySelector('.alert'); if (o) o.remove(); return; }
-        if (cam === 'door' && state.coachMainPos === 2) need = true;
-        if (cam === 'window' && state.coachSubPos === 0 && state.isGameOpen) need = false;
-        if (cam === 'behind' && state.coachSubPos === 1) need = true;
-        if (cam === 'classroom' && state.cls > 65) need = true;
-        if (cam === 'hallway' && state.coachMainPos === 1) need = true;
+        // 副教练在身后：永远保留（否则是纯随机死亡，不是难度）
+        const isSub = (cam === 'behind' && state.coachSubPos === 1);
+        // 断电时只保留副教练警报，其余全灭
+        if (bo && !isSub) { const o = b.querySelector('.alert'); if (o) o.remove(); return; }
+        if (!OPT.camAlert && !isSub) { const o = b.querySelector('.alert'); if (o) o.remove(); return; }
+        if (isSub) { need = true; }
+        else if (cam === 'door' && state.coachMainPos === 2) need = true;
+        else if (cam === 'classroom' && state.cls > 65) need = true;
+        else if (cam === 'hallway' && state.coachMainPos === 1) need = true;
         const old = b.querySelector('.alert');
         if (need && !old) {
             const s = document.createElement('span');
@@ -1166,6 +1222,7 @@ function bindGame() {
 /* ---------------- 入口 ---------------- */
 cacheDom();
 loadSave();
+loadOpt();
 renderAchWall();
 renderBest();
 renderBoard();
