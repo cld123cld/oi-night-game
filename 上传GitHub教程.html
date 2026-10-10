@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>上传 GitHub 教程 · 集训之夜</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--bd:#30363d;--fg:#c9d1d9;--dim:#8b949e;
+      --gr:#3fb950;--bl:#58a6ff;--ye:#d29922;--rd:#f85149;--pk:#bc8cff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+     font-family:-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;
+     line-height:1.75;padding:0 0 80px}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+header{background:linear-gradient(180deg,#161b22,#0d1117);border-bottom:1px solid var(--bd);
+       padding:36px 20px 28px;text-align:center;margin-bottom:28px}
+h1{margin:0;font-size:1.9em;color:var(--gr)}
+header p{color:var(--dim);margin:8px 0 0;font-size:.95em}
+h2{color:var(--bl);border-bottom:1px solid var(--bd);padding-bottom:8px;
+   margin-top:42px;font-size:1.35em}
+h3{color:var(--ye);font-size:1.05em;margin-top:24px}
+.step{background:var(--card);border:1px solid var(--bd);border-radius:8px;
+      padding:16px 20px;margin:14px 0;border-left:4px solid var(--gr)}
+.step .n{display:inline-block;background:var(--gr);color:#0d1117;font-weight:bold;
+         border-radius:50%;width:26px;height:26px;line-height:26px;text-align:center;
+         margin-right:8px;font-size:.9em}
+.step b{color:#fff}
+.ui{background:#010409;border:1px solid var(--bd);border-radius:6px;
+    padding:12px 16px;margin:10px 0;font-size:.9em}
+.ui .btn{display:inline-block;background:#21262d;border:1px solid #363b42;
+         border-radius:6px;padding:3px 12px;margin:2px 4px 2px 0;color:var(--fg);font-size:.9em}
+.ui .btn.hot{background:var(--gr);color:#0d1117;border-color:var(--gr);font-weight:bold}
+.ui .field{background:#0d1117;border:1px solid #30363d;border-radius:6px;
+           padding:4px 10px;display:inline-block;margin:3px 0;color:var(--fg);font-size:.9em}
+.ui .path{color:var(--dim);font-size:.85em}
+code{background:#1f2428;padding:2px 7px;border-radius:4px;font-size:.9em;
+     font-family:Consolas,Monaco,monospace;color:var(--pk)}
+.warn{background:rgba(210,153,34,.08);border:1px solid var(--ye);border-radius:6px;
+      padding:12px 16px;margin:14px 0;font-size:.92em}
+.warn b{color:var(--ye)}
+.danger{background:rgba(248,81,73,.08);border:1px solid var(--rd);border-radius:6px;
+        padding:12px 16px;margin:14px 0;font-size:.92em}
+.danger b{color:var(--rd)}
+.ok{background:rgba(63,185,80,.08);border:1px solid var(--gr);border-radius:6px;
+    padding:12px 16px;margin:14px 0;font-size:.92em}
+.ok b{color:var(--gr)}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:.9em}
+th,td{border:1px solid var(--bd);padding:8px 12px;text-align:left}
+th{background:#1c2128;color:var(--bl)}
+tr:nth-child(even) td{background:#11161c}
+ul,ol{padding-left:24px}
+li{margin:5px 0}
+.small{color:var(--dim);font-size:.88em}
+.urlbox{background:#010409;border:2px dashed var(--gr);border-radius:8px;
+        padding:18px;text-align:center;margin:18px 0;font-size:1.15em;
+        font-family:Consolas,monospace;color:var(--gr);word-break:break-all}
+.toc{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:16px 20px}
+.toc a{color:var(--bl);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+.toc li{margin:4px 0}
+footer{text-align:center;color:var(--dim);margin-top:50px;font-size:.85em;
+       border-top:1px solid var(--bd);padding-top:20px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>把游戏传到 GitHub，让全世界能玩</h1>
+  <p>第一次用 GitHub？没关系，跟着做就行。全程点点鼠标，不用敲命令。</p>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+<b>目录</b>
+<ol>
+  <li><a href="#s1">注册 GitHub 账号</a>（已有账号跳到第 2 步）</li>
+  <li><a href="#s2">新建一个仓库</a></li>
+  <li><a href="#s3">上传 5 个文件</a></li>
+  <li><a href="#s4">开启 GitHub Pages（让游戏能在线玩）</a></li>
+  <li><a href="#s5">打开网址测试</a></li>
+  <li><a href="#s6">以后怎么更新</a></li>
+  <li><a href="#s7">打不开 / 出问题怎么办</a></li>
+</ol>
+</div>
+
+<div class="ok">
+<b>先记住一件事：</b>整个流程大约 10 分钟，<b>不需要安装任何软件</b>，
+全程在网页上操作。你只需要一个邮箱和一个浏览器。
+</div>
+
+<!-- ==================== 1 ==================== -->
+<h2 id="s1">第 1 步 · 注册 GitHub 账号</h2>
+
+<div class="step">
+<span class="n">1</span> 打开 <code>github.com</code>，右上角点 <b>Sign up</b>（注册）
+</div>
+
+<div class="step">
+<span class="n">2</span> 填邮箱 → 密码 → 用户名
+<div class="ui" style="margin-top:8px">
+  <div class="field">邮箱：你常用的邮箱</div><br>
+  <div class="field">密码：至少 15 位或 8 位含数字和字母</div><br>
+  <div class="field">用户名：<b style="color:var(--ye)">这个很重要！</b>它决定你以后的网址</div>
+</div>
+<div class="warn">
+<b>用户名怎么起？</b>只能用英文字母、数字、短横线。
+比如叫 <code>zhang-san</code>，那你的网址就是
+<code>zhang-san.github.io</code>。<br>
+建议起个你以后也不想改的 —— <b>改了用户名，网址就变了</b>。
+</div>
+</div>
+
+<div class="step">
+<span class="n">3</span> 会有个拼图验证，按提示转一下图片就行
+</div>
+
+<div class="step">
+<span class="n">4</span> <b>去邮箱收验证码</b>，填进去
+</div>
+
+<div class="danger">
+<b>⚠️ 这一步千万别跳过！</b>没验证邮箱的话，后面 GitHub Pages 开不了，
+你会卡在第 4 步不知道为什么。如果收不到邮件，看看垃圾箱。
+</div>
+
+<div class="step">
+<span class="n">5</span> 后面问你"用 GitHub 做什么"，选 <b>Just me</b> / 随便选，不影响
+</div>
+
+<!-- ==================== 2 ==================== -->
+<h2 id="s2">第 2 步 · 新建一个仓库</h2>
+
+<div class="step">
+<span class="n">1</span> 登录之后，看页面<b>右上角</b>，点 <b>"+"</b> 号 → 选 <b>New repository</b>
+<div class="ui">
+  <span class="btn">＋ ▾</span> <span class="path">→ 点开下拉菜单</span><br>
+  <span class="btn hot">New repository</span>
+</div>
+</div>
+
+<div class="step">
+<span class="n">2</span> 按下面这样填：
+<div class="ui">
+  <b>Repository name</b>（仓库名）：<code>oi-night-game</code><br>
+  <span class="path">↑ 必须是小写英文。这个名字就是网址的最后一段，
+  打开时必须<b>一字不差</b></span><br><br>
+  <b>Description</b>（描述）：选填，比如写「集训之夜 · 监控模拟小游戏」<br><br>
+  <b>● Public</b>　　○ Private<br>
+  <span class="path">↑ <span class="btn hot" style="display:inline">必须选 Public</span>
+  免费的 GitHub Pages 只对公开仓库开放</span><br><br>
+  <b>Add a README file</b>：<span class="btn">□ 不勾</span><br>
+  <span class="path">↑ 我们已经有 README.md 了，勾了反而冲突</span>
+</div>
+</div>
+
+<div class="step">
+<span class="n">3</span> 点最下面的绿色按钮 <span class="btn hot">Create repository</span>
+</div>
+
+<div class="ok">
+<b>成功的话</b>，你会看到一个空仓库页面，中间写着
+"Quick setup — if you've done this kind of thing before"。
+这就对了。
+</div>
+
+<!-- ==================== 3 ==================== -->
+<h2 id="s3">第 3 步 · 上传文件</h2>
+
+<div class="warn">
+<b>要上传哪几个？</b>就这 5 个，都在你解压出来的 <code>oi-night</code> 文件夹里：
+<table>
+<tr><th>文件</th><th>必须？</th></tr>
+<tr><td><code>index.html</code></td><td>✅ 必须，<b>名字不能改</b></td></tr>
+<tr><td><code>style.css</code></td><td>✅ 必须</td></tr>
+<tr><td><code>script.js</code></td><td>✅ 必须</td></tr>
+<tr><td><code>README.md</code></td><td>建议传，会显示在仓库首页</td></tr>
+<tr><td><code>LICENSE</code></td><td>建议传，声明允许别人玩和改</td></tr>
+</table>
+<code>oi-night-standalone.html</code> 和 <code>tools/</code> <b>不用传</b>
+（一个太大，一个是开发工具）。<br>
+<span class="small">注意：三个文件必须在<b>根目录</b>，不要拖进任何子文件夹。</span>
+</div>
+
+<div class="step">
+<span class="n">1</span> 在仓库页面，找到中间偏上的链接
+<b>"uploading an existing file"</b>，点它
+<div class="ui">
+  页面中间有一行小字：<br>
+  <span class="path">…or</span> <span class="btn">uploading an existing file</span>
+  <span class="path">← 点这个</span>
+</div>
+<div class="small">（如果找不到：仓库页面上有个 <span class="btn">Add file ▾</span>
+按钮，点开选 <b>Upload files</b>）</div>
+</div>
+
+<div class="step">
+<span class="n">2</span> 把 5 个文件<b>直接拖进</b>那个虚线框里
+<div class="ui">
+  也可以点 <span class="btn">choose your files</span> 手动选<br>
+  <span class="path">可以一次选中多个文件（按住 Ctrl 点）</span>
+</div>
+</div>
+
+<div class="step">
+<span class="n">3</span> 等文件传完（下面会出现 5 个小文件条目，带绿色勾）
+</div>
+
+<div class="step">
+<span class="n">4</span> 滚到页面最下面，有个 <b>Commit changes</b> 区：
+<div class="ui">
+  <div class="field">第一行：init（随便写，就是个备注）</div><br>
+  <div class="field">第二行：选填，可以不写</div><br><br>
+  <span class="btn hot">Commit changes</span>
+  <span class="path">← 绿色按钮，点它</span>
+</div>
+</div>
+
+<div class="ok">
+<b>成功的话</b>，页面会跳回仓库首页，你能看到 5 个文件列在那儿，
+下面还显示 README.md 的内容。
+</div>
+
+<!-- ==================== 4 ==================== -->
+<h2 id="s4">第 4 步 · 开启 GitHub Pages</h2>
+
+<div class="step">
+<span class="n">1</span> 仓库页面<b>最上面</b>，有一排标签：
+<code>Code</code> <code>Issues</code> <code>Pull requests</code> <code>Actions</code>
+<code>Projects</code> <code>Wiki</code> <code>Security</code> <code>Insights</code>
+<b style="color:var(--ye)">Settings</b><br>
+点最右边的 <b>Settings</b>（⚙️ 齿轮图标那个）
+<div class="small">找不到？就在仓库名下面那一排，最右边。</div>
+</div>
+
+<div class="step">
+<span class="n">2</span> 在<b>左边</b>的菜单里，往下找，点 <b>Pages</b>
+<div class="ui">
+  <span class="path">左侧菜单：</span><br>
+  General / Access / Collaborators / <b style="color:var(--ye)">Pages</b> / …
+</div>
+</div>
+
+<div class="step">
+<span class="n">3</span> 中间找到 <b>"Build and deployment"</b> 这一块：
+<div class="ui">
+  <b>Source</b>（来源）：选
+  <span class="btn hot">Deploy from a branch</span>
+  <span class="path">← 默认可能就是</span><br><br>
+  <b>Branch</b>（分支）：
+  <span class="btn">main ▾</span> 选 <b>main</b>　
+  <span class="btn">/ (root) ▾</span> 选 <b>/ (root)</b><br>
+  <span class="path">↑ 两个都要选对！文件夹必须是 / (root)，不能是 /docs</span><br><br>
+  <span class="btn hot">Save</span>
+  <span class="path">← 别忘了点保存</span>
+</div>
+</div>
+
+<div class="step">
+<span class="n">4</span> 点完 Save，页面顶部会出现提示：
+"Your site is live at <b>https://xxx.github.io/oi-night/</b>"
+<div class="small">要等 <b>1~2 分钟</b>才真正生效。第一次可能要等 5 分钟。</div>
+</div>
+
+<div class="danger">
+<b>如果 Branch 那里没有 main 可选</b>，说明你的默认分支叫 <code>master</code>
+（老版本 GitHub 的默认叫法）。选 <code>master</code> 就行，效果一样。
+</div>
+
+<!-- ==================== 5 ==================== -->
+<h2 id="s5">第 5 步 · 打开网址测试</h2>
+
+<p>你的网址是这个（把 <code>你的用户名</code> 换成你注册时填的）：</p>
+
+<div class="urlbox">
+https://<b>你的用户名</b>.github.io/<b>你的仓库名</b>/
+</div>
+
+<div class="step">
+<span class="n">1</span> 把这个网址复制到浏览器打开
+</div>
+
+<div class="step">
+<span class="n">2</span> 应该能看到「集训之夜」的主界面，有难度选择和成就墙
+</div>
+
+<div class="step">
+<span class="n">3</span> 点「进入监控室」试玩一下，<b>再按 F5 刷新</b> ——
+成就还在，说明存档正常
+</div>
+
+<div class="ok">
+<b>到这儿就成功了！</b>把这个网址发给同学、发到洛谷/QQ群，
+谁都能直接玩，不用下载。
+</div>
+
+<h3>分享小技巧</h3>
+<ul>
+  <li><b>发给同学单文件版</b>：<code>oi-night-standalone.html</code>
+  才 70KB，QQ 直接传，对方下载后双击就能玩，<b>不用联网</b></li>
+  <li><b>在 README 里放链接</b>：把你网址写进 README，别人点开仓库就能看到</li>
+  <li><b>手机上也能玩</b>，但屏幕小，体验不如电脑。可以提示"建议横屏"</li>
+</ul>
+
+<!-- ==================== 6 ==================== -->
+<h2 id="s6">以后怎么更新</h2>
+
+<p>比如你改了难度数值、加了新成就，想让线上也更新：</p>
+
+<div class="step">
+<span class="n">1</span> 回到仓库页面，点进你要改的文件（比如 <code>script.js</code>）
+</div>
+
+<div class="step">
+<span class="n">2</span> 右上角有个 <b>✏️ 铅笔图标</b>，点它就能在线编辑
+</div>
+
+<div class="step">
+<span class="n">3</span> 改完滚到底，点 <span class="btn hot">Commit changes</span>
+</div>
+
+<div class="step">
+<span class="n">4</span> <b>等 1~2 分钟</b>，刷新网址就是新版了
+</div>
+
+<div class="warn">
+<b>浏览器可能有缓存！</b>如果刷新后还是旧的，按
+<code>Ctrl + F5</code>（强制刷新），或者 <code>Ctrl + Shift + Delete</code> 清缓存。
+</div>
+
+<p class="small">想换整个文件的话：仓库页面 → 点文件 → 右上角 🗑️ 删除 → 再重新上传。</p>
+
+<!-- ==================== 7 ==================== -->
+<h2 id="s7">打不开 / 出问题怎么办</h2>
+
+<table>
+<tr><th>现象</th><th>原因 & 解决办法</th></tr>
+<tr>
+  <td>网址显示 <b>404</b></td>
+  <td>① 等了没够 2 分钟，再等等<br>
+      ② <b style="color:var(--rd)">网址里的仓库名拼错了</b> ——
+         仓库叫 <code>oi-night-game</code>，网址就必须是
+         <code>.../oi-night-game/</code>，少个 <code>-game</code> 就是 404<br>
+      ③ Pages 没开或 Branch 没选对</td>
+</tr>
+<tr>
+  <td>网址显示 <b>404</b>（第二种）</td>
+  <td>① 等了没够 2 分钟，再等等<br>
+      ② 仓库名拼错了 —— 网址里的仓库名必须<b>完全一样</b>（大小写敏感）<br>
+      ③ Pages 的 Branch 没选对，回去检查</td>
+</tr>
+<tr>
+  <td>页面能开但<b>没有样式</b>（一片白底黑字）</td>
+  <td>css 文件没传上，或者不在根目录。检查仓库里有没有 <code>style.css</code></td>
+</tr>
+<tr>
+  <td>游戏<b>点不了 / 没反应</b></td>
+  <td><code>script.js</code> 没传上。按 F12 打开控制台看红色报错</td>
+</tr>
+<tr>
+  <td>Settings 里<b>找不到 Pages</b></td>
+  <td>邮箱没验证。去邮箱点验证链接，或者仓库是不是 Private 了</td>
+</tr>
+<tr>
+  <td><b>打不开 github.com</b></td>
+  <td>国内有时访问不稳定，换个时间试、换网络、或用手机热点。
+      也可以把 <code>oi-night-standalone.html</code> 直接发给别人玩（不需要 GitHub）</td>
+</tr>
+<tr>
+  <td>成就<b>刷新后没了</b></td>
+  <td>正常现象只有一种：你换域名了（比如从本地 <code>file://</code>
+      换到 <code>github.io</code>）。浏览器按域名隔离存储。<br>
+      解决：在游戏里点<b>「导出存档」</b>存好，到新网址点<b>「导入存档」</b></td>
+</tr>
+</table>
+
+<h3>关于国内访问</h3>
+<p>GitHub 在国内有时候会比较慢，这是正常的。几个办法：</p>
+<ul>
+  <li>多刷新几次，或换个时间段</li>
+  <li>用手机热点试试</li>
+  <li><b>备选方案</b>：如果想让国内访问更快，可以考虑
+      <code>Vercel</code>（vercel.com）或 <code>Netlify</code>，
+      同样免费、同样支持静态页面，上传方式也差不多</li>
+  <li>最省事的方案：<b>直接发单文件版</b>给别人，完全绕开这个问题</li>
+</ul>
+
+<div class="ok" style="margin-top:30px">
+<b>恭喜！</b>你现在有一个属于自己的、全世界都能访问的网站了。
+这是很多程序员的第一步，你初二就做到了。
+</div>
+
+<footer>
+  教程随「集训之夜」项目一起提供 · 遇到问题可以回去问那个帮你写代码的 AI 😄
+</footer>
+
+</div>
+</body>
+</html>

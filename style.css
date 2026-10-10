@@ -493,3 +493,88 @@ body {
 @media (max-width: 760px) {
     .panel-row { grid-template-columns: 1fr; }
 }
+
+/* ============ 题目进度 ============ */
+.fill.prog { background: #66ccff; box-shadow: 0 0 6px #66ccff; }
+.prog-text { font-size: .78em; color: #8ab; margin-left: 4px; white-space: nowrap; }
+
+.goal-note {
+    font-size: .82em; color: #7a9a7a; line-height: 1.8;
+    border-left: 2px solid #2a5a2a; padding: 8px 0 8px 12px; margin: 0 0 12px;
+}
+.goal-note b { color: #fff; }
+.warn-note { border-left-color: #5a4a2a; color: #9a8a6a; }
+.warn-note b.g { color: var(--green); }
+.warn-note b.r { color: var(--red); }
+
+/* 刷题界面：题目进度 + 心流 */
+#study-info { padding: 12px 20px; border-top: 1px solid #3a3a3a; background: #232324; }
+.si-line { font-size: .85em; color: #bbb; margin-bottom: 7px; }
+.si-line b { color: var(--blue); font-size: 1.15em; }
+.si-goal { color: #5a6a5a; font-size: .9em; margin-left: 6px; }
+.si-bar { height: 10px; background: #1a1a1a; border: 1px solid #444; }
+#sp-bar-fill { height: 100%; width: 0%; background: var(--blue); transition: width .2s; box-shadow: 0 0 6px var(--blue); }
+.flow-tag { font-size: .74em; color: #5a6a5a; margin-top: 7px; transition: color .3s; }
+.flow-tag.on { color: var(--yellow); text-shadow: 0 0 8px rgba(255,204,0,.5); font-weight: bold; }
+
+/* ============ 三结局：熬了个寂寞 ============ */
+.modal-content.hollow { border-color: var(--yellow); box-shadow: 0 0 35px var(--yellow); }
+.hollow h2 { color: var(--yellow); text-shadow: 0 0 14px var(--yellow); }
+
+/* ============ 断电 ============ */
+#status-bar.blackout { filter: brightness(.45) saturate(.3); }
+.blackout-screen {
+    position: absolute; inset: 0; z-index: 7;
+    background: #000;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center; gap: 6px;
+    animation: boin .25s;
+}
+@keyframes boin { from { opacity: 0 } to { opacity: 1 } }
+.bo-icon { font-size: 3em; color: #554400; animation: boflick 1.2s infinite; }
+@keyframes boflick { 0%,92%{opacity:.25} 95%{opacity:1} 100%{opacity:.25} }
+.bo-title { font-size: 1.6em; color: #886600; letter-spacing: 6px; text-shadow: 0 0 14px rgba(255,180,0,.35); }
+.bo-sub { font-size: .78em; color: #554; }
+.bo-count { font-size: 2.4em; color: #ffcc00; margin-top: 8px; text-shadow: 0 0 12px rgba(255,204,0,.5); }
+.bo-hint { font-size: .72em; color: #4a4a3a; margin-top: 4px; }
+
+/* ============ 评级图例 ============ */
+.rank-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.rl { font-size: .74em; padding: 5px 12px; border: 1px solid #333; background: #111; }
+.rl b { margin-right: 6px; font-size: 1.1em; }
+.rl.rank-D b { color:#777 } .rl.rank-C b { color:#9ab }
+.rl.rank-B b { color:#66ccff } .rl.rank-A b { color:#ffcc00 }
+.rl.rank-S  { border-color:#ff8833 } .rl.rank-S b { color:#ff8833 }
+.rl.rank-SS { border-color:#ff5555 } .rl.rank-SS b { color:#ff5555 }
+.rl.rank-SSS{ border-color:#ff33cc; box-shadow: 0 0 10px rgba(255,51,204,.2) }
+.rl.rank-SSS b { color:#ff33cc }
+
+/* ============ 排行榜 ============ */
+.board-panel { border-left-color: #5a4a2a; margin-bottom: 22px; }
+.board-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.bd-row {
+    display: grid; grid-template-columns: 34px 52px 62px 44px 1fr;
+    align-items: center; gap: 8px;
+    font-size: .76em; padding: 6px 10px;
+    background: #111; border: 1px solid #222;
+}
+.bd-row.rank-SSS { border-color: #ff33cc; box-shadow: 0 0 8px rgba(255,51,204,.12); }
+.bd-row.rank-SS  { border-color: #ff5555; }
+.bd-row.rank-S   { border-color: #ff8833; }
+.bd-row.rank-A   { border-color: #ffcc00; }
+.bd-row.rank-B   { border-color: #66ccff; }
+.bd-no { text-align: center; font-size: 1.1em; }
+.bd-diff { color: var(--text-secondary); }
+.bd-score { color: #fff; font-weight: bold; font-size: 1.05em; }
+.bd-rank { font-weight: bold; }
+.bd-row.rank-SSS .bd-rank { color:#ff33cc } .bd-row.rank-SS .bd-rank { color:#ff5555 }
+.bd-row.rank-S .bd-rank { color:#ff8833 } .bd-row.rank-A .bd-rank { color:#ffcc00 }
+.bd-row.rank-B .bd-rank { color:#66ccff } .bd-row.rank-C .bd-rank { color:#9ab }
+.bd-row.rank-D .bd-rank { color:#777 }
+.bd-info { color: #555; font-size: .9em; text-align: right; }
+.bd-empty { color: #4a5a4a; font-size: .8em; padding: 8px 0; }
+
+@media (max-width: 760px) {
+    .bd-row { grid-template-columns: 30px 46px 56px 40px 1fr; font-size: .7em; }
+}

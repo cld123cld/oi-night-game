@@ -14,6 +14,8 @@ const DIFF = {
         mainP: 0.24, subP: 0.20,
         backP: 0.60, fwdP: 0.78, retreatP: 0.85,   // 主教练行动
         clsUp: 2.0, clsDown: 30, jcPush: false,    // 同学
+        studyRate: 0.18, target: 60,  // 刷题速度(%/秒) 与达标线
+        blackoutN: 1, blackoutSec: 6,   // 断电次数与每次时长
         repairMs: 55, repairAdd: 3, doorDmg: 9,
         subGrace: 7
     },
@@ -22,6 +24,8 @@ const DIFF = {
         mainP: 0.32, subP: 0.28,
         backP: 0.55, fwdP: 0.82, retreatP: 0.80,
         clsUp: 3.0, clsDown: 28, jcPush: false,
+        studyRate: 0.19, target: 70,  // 刷题速度(%/秒) 与达标线
+        blackoutN: 2, blackoutSec: 7,   // 断电次数与每次时长
         repairMs: 65, repairAdd: 3, doorDmg: 11,
         subGrace: 7
     },
@@ -30,6 +34,8 @@ const DIFF = {
         mainP: 0.40, subP: 0.34,
         backP: 0.48, fwdP: 0.86, retreatP: 0.78,
         clsUp: 4.0, clsDown: 26, jcPush: false,
+        studyRate: 0.24, target: 80,  // 刷题速度(%/秒) 与达标线
+        blackoutN: 3, blackoutSec: 8,   // 断电次数与每次时长
         repairMs: 75, repairAdd: 3, doorDmg: 12,
         subGrace: 7
     },
@@ -38,18 +44,25 @@ const DIFF = {
         mainP: 0.42, subP: 0.36,
         backP: 0.50, fwdP: 0.90, retreatP: 0.76,
         clsUp: 4.5, clsDown: 24, jcPush: true,
+        studyRate: 0.29, target: 85,  // 刷题速度(%/秒) 与达标线
+        blackoutN: 4, blackoutSec: 9,   // 断电次数与每次时长
         repairMs: 85, repairAdd: 3, doorDmg: 13,
         subGrace: 7
     },
     epic: {
         name: '史诗', hourMs: 19000, aiMs: 3300,
-        mainP: 0.46, subP: 0.42,
+        mainP: 0.40, subP: 0.34,
         backP: 0.48, fwdP: 0.95, retreatP: 0.74,
         clsUp: 5.0, clsDown: 22, jcPush: true,
+        studyRate: 0.34, target: 92,  // 刷题速度(%/秒) 与达标线
+        blackoutN: 4, blackoutSec: 8,   // 断电次数与每次时长
         repairMs: 95, repairAdd: 3, doorDmg: 15,
         subGrace: 7
     }
 };
+
+const FLOW_SEC = 30;      // 连续刷题多久进入心流
+const FLOW_MULT = 1.3;    // 心流时效率倍率
 
 const START_HOUR = 0;
 const END_HOUR = 23;
@@ -93,6 +106,15 @@ const ACH = [
       desc:'被 JC 时，大门耐久 <10%' },
     { id:'jcsuccess', lvl:'A', name:'JC 成功',
       desc:'你压制过捣乱值，可还是被 JC 了（压制时没压到 0）' },
+
+    { id:'flowstate', lvl:'B', name:'心流状态',
+      desc:'连续刷题 60 秒不被打断' },
+    { id:'justright', lvl:'A', name:'刚刚好',
+      desc:'通关时进度刚好卡在达标线 ±3 以内' },
+    { id:'overkill',  lvl:'S', name:'超额完成',
+      desc:'进度刷到达标线的 1.5 倍' },
+    { id:'insomnia',  lvl:'B', name:'熬了个寂寞',
+      desc:'活到了 23:00，可题一道都没刷完' },
 ];
 
 const LVL_SCORE = { C: 80, B: 150, A: 300, S: 500 };
@@ -103,7 +125,7 @@ ACH.forEach(a => { ACH_BY_ID[a.id] = a; });
 
 /* ---------------- 存档 ---------------- */
 const SAVE_KEY = 'oi-night-save-v1';
-let save = { unlocked: {}, best: {}, runs: 0, wins: 0, noJcRuns: 0 };
+let save = { unlocked: {}, best: {}, runs: 0, wins: 0, noJcRuns: 0, board: [] };
 
 function loadSave() {
     try {
@@ -117,17 +139,53 @@ function loadSave() {
             }
         }
     } catch (e) {
-        save = { unlocked: {}, best: {}, runs: 0, wins: 0, noJcRuns: 0 };
+        save = { unlocked: {}, best: {}, runs: 0, wins: 0, noJcRuns: 0, board: [] };
     }
+    if (!save.board) save.board = [];
 }
+
 function writeSave() {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
 }
 function clearSave() {
-    save = { unlocked: {}, best: {}, runs: 0, wins: 0, noJcRuns: 0 };
+    save = { unlocked: {}, best: {}, runs: 0, wins: 0, noJcRuns: 0, board: [] };
     writeSave();
     renderAchWall();
     renderBest();
+    renderBoard();
+}
+function clearBoard() {
+    save.board = [];
+    writeSave();
+    renderBoard();
+}
+
+/* ---------------- 排行榜 ---------------- */
+function pushBoard(rec) {
+    save.board.push(rec);
+    save.board.sort((a, b) => b.score - a.score);
+    if (save.board.length > 10) save.board = save.board.slice(0, 10);
+    writeSave();
+}
+function renderBoard() {
+    const box = dom['board-list'];
+    if (!box) return;
+    if (!save.board.length) {
+        box.innerHTML = '<div class="bd-empty">还没有记录 —— 打一局试试。</div>';
+        return;
+    }
+    box.innerHTML = save.board.map((r, i) => {
+        const medal = ['🥇', '🥈', '🥉'][i] || (i + 1);
+        const d = new Date(r.ts);
+        const dt = `${d.getMonth() + 1}/${d.getDate()}`;
+        return `<div class="bd-row rank-${r.rank}">
+                    <span class="bd-no">${medal}</span>
+                    <span class="bd-diff">${DIFF[r.diff] ? DIFF[r.diff].name : r.diff}</span>
+                    <span class="bd-score">${r.score}</span>
+                    <span class="bd-rank">${r.rank}</span>
+                    <span class="bd-info">${r.hours}h · 进度${r.prog}% · ${dt}</span>
+                 </div>`;
+    }).join('');
 }
 
 /* ---------------- 成就解锁 ---------------- */
@@ -160,29 +218,49 @@ function toastAch(a) {
 function computeScore(win) {
     const hours = state.hoursElapsed;
     const base = hours * 40;
-    const winBonus = win ? 1500 : 0;                       // 不吃难度倍率
+    const trueWin = win && state.progress >= D.target;
+    const winBonus = trueWin ? 1500 : 0;                   // 不吃难度倍率
+    const progScore = Math.round(Math.min(state.progress, D.target * 1.5) * 8);
     const durBonus = win ? Math.round(state.doorDurability * 2) : 0;
     const jcPenalty = state.clsJcCount * 80;
     const achScore = state.runAch.reduce((s, id) =>
         s + (LVL_SCORE[ACH_BY_ID[id].lvl] || 0), 0);
 
-    const perf = Math.max(0, base + durBonus - jcPenalty + achScore);
+    const perf = Math.max(0, base + progScore + durBonus - jcPenalty + achScore);
     const mult = DIFF_MULT[D.key] || 1;
     const total = Math.round(perf * mult + winBonus);
 
-    return { hours, base, winBonus, durBonus, jcPenalty, achScore, perf, mult, total };
+    return { hours, base, progScore, winBonus, durBonus, jcPenalty,
+             achScore, perf, mult, total, trueWin };
 }
 
 /* 评级线。未通关最高只能到 A —— 活着出去才配谈高分。
    这些线是用 score_sim.js 跑了三种玩法风格 × 5 档难度校准的。 */
-function rankOf(s) {
-    if (s >= 4200) return 'SSS';
-    if (s >= 3400) return 'SS';
-    if (s >= 2700) return 'S';
-    if (s >= 1900) return 'A';
-    if (s >= 1200) return 'B';
+/* 评级含义（按玩家的说法重新定义）：
+   D 保底 / C 普通 / B 良好(非新手) / A 大佬(摸鱼高手)
+   S 玩了十把左右能做到 / SS 困难或地狱接近完美 / SSS 史诗接近完美，非常难得 */
+const RANK_ORDER = ['D', 'C', 'B', 'A', 'S', 'SS', 'SSS'];
+const RANK_DESC = {
+    D: '保底', C: '普通', B: '良好 · 非新手', A: '大佬 · 摸鱼高手',
+    S: '高手 · 十把可及', SS: '神级 · 困难/地狱接近完美', SSS: '传说 · 史诗接近完美'
+};
+/* 难度决定评级上限：简单刷不出 S，普通刷不出 SS，史诗才够得到 SSS */
+const RANK_CAP = { easy: 'A', normal: 'S', hard: 'SS', hell: 'SS', epic: 'SSS' };
+
+function rawRank(s) {
+    if (s >= 6300) return 'SSS';
+    if (s >= 3300) return 'SS';
+    if (s >= 2400) return 'S';
+    if (s >= 1700) return 'A';
+    if (s >= 1100) return 'B';
     if (s >= 600)  return 'C';
     return 'D';
+}
+function rankOf(s, key) {
+    let r = rawRank(s);
+    const cap = RANK_CAP[key] || 'SSS';
+    if (RANK_ORDER.indexOf(r) > RANK_ORDER.indexOf(cap)) r = cap;
+    return r;
 }
 
 /* ---------------- 成就墙 / 最佳成绩 ---------------- */
@@ -206,7 +284,7 @@ function renderBest() {
         const b = save.best[k];
         return `<div class="b-row">
                     <span class="b-diff">${DIFF[k].name}</span>
-                    <span class="b-score">${b ? b.score + ' 分 · ' + rankOf(b.score)
+                    <span class="b-score">${b ? b.score + ' 分 · ' + b.rank
                                               : '—'}</span>
                  </div>`;
     }).join('');
@@ -257,7 +335,9 @@ function cacheDom() {
      'study-screen', 'btn-exit-study', 'study-progress-box', 'study-progress-fill',
      'modal', 'modal-box', 'modal-title', 'modal-msg', 'modal-stat',
      'btn-restart', 'btn-back', 'cam-map',
-     'ach-wall', 'best-table', 'btn-clear', 'ach-toast', 'score-box', 'run-ach'
+     'ach-wall', 'best-table', 'btn-clear', 'ach-toast', 'score-box', 'run-ach',
+     'prog-fill', 'prog-text', 'sp-num', 'sp-target', 'sp-bar-fill', 'flow-tag',
+     'board-list', 'btn-clear-board', 'status-bar'
     ].forEach(id => { dom[id] = $(id); });
     dom.camBtns = document.querySelectorAll('.cam-btn');
 }
@@ -317,6 +397,11 @@ function bindStart() {
             if (confirm('确定清除所有存档？成就和最高分都会消失。')) clearSave();
         });
     }
+    if (dom['btn-clear-board']) {
+        dom['btn-clear-board'].addEventListener('click', () => {
+            if (confirm('确定清空排行榜？')) clearBoard();
+        });
+    }
 }
 
 function resetUI() {
@@ -368,11 +453,30 @@ function startGame(key) {
         clsSuppressMin: 100,       // 压制过程中的最低捣乱值
         suppressedEver: false,     // 是否压制过
         clsPeak: 0,                // 捣乱值峰值
-        bladeDone: false
+        bladeDone: false,
+
+        /* ---- 断电 ---- */
+        blackout: false,           // 是否正在断电
+        blackoutLeft: 0,           // 剩余秒数
+        blackoutHours: [],         // 计划断电的整点
+        blackoutCount: 0,          // 已发生次数
+
+        /* ---- 刷题进度 ---- */
+        progress: 0,               // 题目进度 %
+        streak: 0,                 // 连续刷题秒数（心流用）
+        flowReached: false,        // 是否进过心流
+        maxStreak: 0
     };
 
     dom['game-container'].classList.remove('hidden');
     dom['diff-label'].textContent = D.name;
+    dom['sp-target'].textContent = D.target;
+
+    /* 排断电表：均匀分布在整晚 */
+    const bn = D.blackoutN || 0;
+    for (let i = 1; i <= bn; i++) {
+        state.blackoutHours.push(Math.round(i * END_HOUR / (bn + 1)));
+    }
     dom['cls-wrap'].style.display = D.clsUp > 0 ? '' : 'none';
 
     updateClock();
@@ -391,6 +495,7 @@ function hourLoop() {
     if (state.gameOver) return;
     state.time++;
     updateClock();
+    if (state.blackoutHours.indexOf(state.time) >= 0) startBlackout();
     beep(state.time % 6 === 0 ? 880 : 440, 0.06, 'sine', 0.03);
     if (state.time >= END_HOUR) endGame(true, '你熬到了晚上 23:00。集训结束，你活下来了。');
 }
@@ -435,11 +540,53 @@ function aiLoop() {
     if (state.isGameOpen) renderCam();
 }
 
+/* ---------------- 断电 ---------------- */
+function startBlackout() {
+    if (state.blackout) return;
+    state.blackout = true;
+    state.blackoutLeft = D.blackoutSec || 8;
+    state.blackoutCount++;
+    log('⚡ 供电中断 —— 监控全部失效。');
+    beep(70, 0.9, 'sawtooth', 0.11);
+    setTimeout(() => beep(50, 0.6, 'sawtooth', 0.08), 200);
+    syncDoorBtn();          // 门状态文本变「？？？」
+    updateBars();
+    renderCam();
+}
+
+function endBlackout() {
+    state.blackout = false;
+    log('供电恢复。');
+    beep(620, 0.18, 'sine', 0.05);
+    syncDoorBtn();          // ★ 必须恢复门文本，否则永远卡在「？？？」
+    updateBars();
+    renderCam();
+}
+
 function secondLoop() {
     if (state.gameOver) return;
 
+    /* --- 断电倒计时 --- */
+    if (state.blackout) {
+        state.blackoutLeft--;
+        if (state.blackoutLeft <= 0) endBlackout();
+    }
+
     state.totalSec++;
     if (!state.isGameOpen) state.studySec++;
+
+    /* --- 刷题进度 + 心流 --- */
+    if (!state.isGameOpen) {
+        state.streak++;
+        state.maxStreak = Math.max(state.maxStreak, state.streak);
+        const flow = state.streak >= FLOW_SEC;
+        if (flow) state.flowReached = true;
+        state.progress += D.studyRate * (flow ? FLOW_MULT : 1.0);
+        // 心流成就：连续 60 秒不中断
+        if (state.streak >= 60) unlock('flowstate');
+    } else {
+        state.streak = 0;
+    }
 
     /* --- 历史追踪（成就用） --- */
     state.durMin = Math.min(state.durMin, state.doorDurability);
@@ -616,18 +763,32 @@ function updateClock() {
 }
 
 function updateBars() {
-    // 大门
-    dom['dur-fill'].style.width = state.doorDurability + '%';
-    dom['dur-fill'].style.backgroundColor = state.doorDurability < 30 ? '#ff3333' : '#00ff41';
-    // 同学
-    const c = Math.min(100, state.cls);
+    // 大门（断电时隐藏真实数值）
+    dom['dur-fill'].style.width = bo ? '0%' : state.doorDurability + '%';
+    dom['dur-fill'].style.backgroundColor =
+        bo ? '#222' : (state.doorDurability < 30 ? '#ff3333' : '#00ff41');
+    // 同学（断电时隐藏）
+    const c = bo ? 0 : Math.min(100, state.cls);
     dom['cls-fill'].style.width = c + '%';
     dom['cls-fill'].style.backgroundColor = c > 70 ? '#ff3333' : (c > 40 ? '#ffcc00' : '#66ccff');
 
+    /* 断电时：所有状态对外不可见（这是断电的全部意义） */
+    const bo = state.blackout;
+    dom['status-bar'].classList.toggle('blackout', bo);
+
+    // 题目进度（填满 = 达标）
+    const pct = bo ? 0 : Math.min(100, state.progress / D.target * 100);
+    dom['prog-fill'].style.width = pct + '%';
+    const done = state.progress >= D.target;
+    dom['prog-fill'].style.backgroundColor = done ? '#ffcc00' : '#66ccff';
+    dom['prog-fill'].style.boxShadow = '0 0 6px ' + (done ? '#ffcc00' : '#66ccff');
+    dom['prog-text'].textContent = bo ? '？ / ？' : (Math.floor(state.progress) + ' / ' + D.target);
+    dom['prog-text'].style.color = bo ? '#555' : (done ? '#ffcc00' : '#8ab');
+
     // 副教练危机
     const inCrisis = state.coachSubPos === 1;
-    dom['sub-warning'].classList.toggle('hidden', !(inCrisis && state.isGameOpen));
-    dom['danger-vignette'].classList.toggle('on', inCrisis);
+    dom['sub-warning'].classList.toggle('hidden', !(inCrisis && state.isGameOpen) || bo);
+    dom['danger-vignette'].classList.toggle('on', inCrisis && !bo);
     if (inCrisis) {
         dom['sub-fill'].style.width = (state.subDanger / D.subGrace * 100) + '%';
         dom['sub-seconds'].textContent = Math.max(0, Math.ceil(state.subDanger));
@@ -636,10 +797,24 @@ function updateBars() {
     dom['study-progress-box'].classList.toggle('hidden', !(inCrisis && !state.isGameOpen));
     dom['study-progress-fill'].style.width = Math.min(100, state.studyProgress) + '%';
 
-    // 摄像头按钮上的警报
+    // 刷题界面常驻：题目进度 + 心流
+    if (!state.isGameOpen) {
+        dom['sp-num'].textContent = Math.floor(state.progress);
+        dom['sp-target'].textContent = D.target;
+        dom['sp-bar-fill'].style.width =
+            Math.min(100, state.progress / D.target * 100) + '%';
+        const flow = state.streak >= FLOW_SEC;
+        dom['flow-tag'].className = 'flow-tag' + (flow ? ' on' : '');
+        dom['flow-tag'].textContent = flow
+            ? `心流状态！连续 ${state.streak} 秒，效率 ×${FLOW_MULT}`
+            : `专注中 ${state.streak}s ／ ${FLOW_SEC}s 后进入心流（效率 ×${FLOW_MULT}）`;
+    }
+
+    // 摄像头按钮上的警报（断电时一律不亮）
     dom.camBtns.forEach(b => {
         const cam = b.dataset.cam;
         let need = false;
+        if (bo) { const o = b.querySelector('.alert'); if (o) o.remove(); return; }
         if (cam === 'door' && state.coachMainPos === 2) need = true;
         if (cam === 'window' && state.coachSubPos === 0 && state.isGameOpen) need = false;
         if (cam === 'behind' && state.coachSubPos === 1) need = true;
@@ -715,6 +890,18 @@ function addSprite(cls, tag, left, top, extraCls) {
 
 function renderCam() {
     if (!state) return;
+    if (state.blackout) {
+        dom['cam-name'].textContent = '⚡ 信号中断';
+        dom['cam-visuals'].innerHTML =
+            `<div class="blackout-screen">
+                 <div class="bo-icon">⚡</div>
+                 <div class="bo-title">供 电 中 断</div>
+                 <div class="bo-sub">监控失效 · 大门状态未知 · 同学动态未知</div>
+                 <div class="bo-count">${state.blackoutLeft}s</div>
+                 <div class="bo-hint">什么都看不见 —— 要不要趁现在刷题？</div>
+             </div>`;
+        return;
+    }
     const cam = state.currentCam;
     dom['cam-name'].textContent = CAM_NAME[cam];
     dom['cam-visuals'].innerHTML = decorFor(cam);
@@ -775,6 +962,12 @@ function toggleMode() {
         dom['sub-warning'].classList.add('hidden');
     }
     updateBars();
+    if (!state.isGameOpen) {
+        dom['sp-num'].textContent = Math.floor(state.progress);
+        dom['sp-target'].textContent = D.target;
+        dom['sp-bar-fill'].style.width =
+            Math.min(100, state.progress / D.target * 100) + '%';
+    }
 }
 
 function syncDoorBtn() {
@@ -785,6 +978,7 @@ function syncDoorBtn() {
         dom['btn-door'].classList.remove('closed');
         dom['door-status-text'].textContent = '开启';
     }
+    if (state.blackout) { dom['door-status-text'].textContent = '？？？'; return; }
     const dd = dom['cam-visuals'].querySelector('#dec-door');
     if (dd) dd.className = 'dec dec-door ' + (state.isDoorClosed ? 'closed' : '');
 }
@@ -846,8 +1040,15 @@ function endGame(win, reason) {
     dom['study-screen'].classList.add('hidden');
 
     state.hoursElapsed = win ? END_HOUR : state.time;
+    const trueWin = win && state.progress >= D.target;
 
     /* ---- 通关类成就 ---- */
+    if (win) {
+        if (!trueWin) unlock('insomnia');
+        const gap = Math.abs(state.progress - D.target);
+        if (gap <= 3) unlock('justright');
+        if (state.progress >= D.target * 1.5) unlock('overkill');
+    }
     if (win) {
         if (D.key === 'epic') unlock('epicsurv');
         if (state.durMin >= 50) unlock('gatekeeper');
@@ -872,34 +1073,47 @@ function endGame(win, reason) {
 
     /* ---- 评分 ---- */
     const sc = computeScore(win);
-    const rank = rankOf(sc.total);
+    const rank = rankOf(sc.total, D.key);
     const prevBest = save.best[D.key];
     const isNewBest = !prevBest || sc.total > prevBest.score;
     if (isNewBest) save.best[D.key] = { score: sc.total, rank: rank, at: Date.now() };
+    pushBoard({
+        diff: D.key, score: sc.total, rank: rank,
+        hours: sc.hours, prog: Math.floor(state.progress), ts: Date.now()
+    });
     writeSave();
 
     /* ---- 结算界面 ---- */
     dom.modal.classList.remove('hidden');
-    dom['modal-box'].className = 'modal-content ' + (win ? 'success' : 'fail');
-    dom['modal-title'].textContent = win ? '撑 过 去 了' : '被 抓 到 了';
-    dom['modal-msg'].textContent = reason;
+    const kind = !win ? 'fail' : (trueWin ? 'success' : 'hollow');
+    dom['modal-box'].className = 'modal-content ' + kind;
+    dom['modal-title'].textContent =
+        !win ? '被 抓 到 了' : (trueWin ? '撑 过 去 了' : '熬 了 个 寂 寞');
+    dom['modal-msg'].textContent = !win ? reason :
+        (trueWin ? '你熬到了 23:00，题也刷完了。这才是真正的通关。'
+                 : `你活到了 23:00 —— 但题目进度只有 ${Math.floor(state.progress)}%，`
+                   + `达标线是 ${D.target}%。人是活的，题一道没过。`);
 
     dom['modal-stat'].innerHTML =
         `坚持 ${sc.hours} 小时　·　难度 ${D.name}　·　被 JC ${state.clsJcCount} 次<br>` +
-        `剩余门耐久 ${Math.round(state.doorDurability)}%　·　刷题占比 ${(ratio * 100).toFixed(0)}%`;
+        `题目进度 ${Math.floor(state.progress)}% ／ 达标 ${D.target}%　·　` +
+        `剩余门耐久 ${Math.round(state.doorDurability)}%<br>` +
+        `刷题占比 ${(ratio * 100).toFixed(0)}%　·　最长连续专注 ${state.maxStreak} 秒`;
 
     dom['score-box'].className = 'score-box rank-' + rank;
     dom['score-box'].innerHTML =
         `<div class="s-num">${sc.total}</div>
          <div class="s-rank">${rank} 级</div>
+         <div class="s-desc">${RANK_DESC[rank]}</div>
          <div class="s-formula">
              基础 ${sc.base}（${sc.hours}h × 40）
-             ${win ? '＋ 通关 1500' : ''}
+             ＋ 进度 ${sc.progScore}
+             ${sc.trueWin ? '＋ 达标 1500' : ''}
              ${win ? '＋ 耐久 ' + sc.durBonus : ''}
              － JC ${sc.jcPenalty}
              ＋ 成就 ${sc.achScore}
              <br>= ${sc.perf} × ${sc.mult}（难度）
-             ${win ? '＋ 1500' : ''} = <b>${sc.total}</b>
+             ${sc.trueWin ? '＋ 1500' : ''} = <b>${sc.total}</b>
          </div>
          ${isNewBest ? '<div class="s-new">★ 新纪录！</div>'
                      : (prevBest ? `<div class="s-old">历史最佳 ${prevBest.score}（${prevBest.rank}）</div>` : '')}`;
@@ -914,6 +1128,7 @@ function endGame(win, reason) {
 
     renderAchWall();
     renderBest();
+    renderBoard();
     beep(win ? 880 : 110, 0.6, win ? 'sine' : 'sawtooth', 0.08);
 }
 
@@ -949,5 +1164,6 @@ cacheDom();
 loadSave();
 renderAchWall();
 renderBest();
+renderBoard();
 bindStart();
 bindGame();
