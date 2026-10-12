@@ -15,6 +15,7 @@ const DIFF = {
         backP: 0.60, fwdP: 0.78, retreatP: 0.85,   // 主教练行动
         clsUp: 2.0, clsDown: 30, jcPush: false,    // 同学
         studyRate: 0.18, target: 60,  // 刷题速度(%/秒) 与达标线
+        clsInterrupt: 0,        // 同学打断刷题的概率(每秒)
         blackoutN: 1, blackoutSec: 6,   // 断电次数与每次时长
         repairMs: 55, repairAdd: 3, doorDmg: 9,
         subGrace: 7
@@ -25,6 +26,7 @@ const DIFF = {
         backP: 0.55, fwdP: 0.82, retreatP: 0.80,
         clsUp: 3.0, clsDown: 28, jcPush: false,
         studyRate: 0.19, target: 70,  // 刷题速度(%/秒) 与达标线
+        clsInterrupt: 0.025,        // 同学打断刷题的概率(每秒)
         blackoutN: 2, blackoutSec: 7,   // 断电次数与每次时长
         repairMs: 65, repairAdd: 3, doorDmg: 11,
         subGrace: 7
@@ -35,6 +37,7 @@ const DIFF = {
         backP: 0.48, fwdP: 0.86, retreatP: 0.78,
         clsUp: 4.0, clsDown: 26, jcPush: false,
         studyRate: 0.24, target: 80,  // 刷题速度(%/秒) 与达标线
+        clsInterrupt: 0.035,        // 同学打断刷题的概率(每秒)
         blackoutN: 3, blackoutSec: 8,   // 断电次数与每次时长
         repairMs: 75, repairAdd: 3, doorDmg: 12,
         subGrace: 7
@@ -45,6 +48,7 @@ const DIFF = {
         backP: 0.50, fwdP: 0.90, retreatP: 0.76,
         clsUp: 4.5, clsDown: 24, jcPush: true,
         studyRate: 0.29, target: 85,  // 刷题速度(%/秒) 与达标线
+        clsInterrupt: 0.045,        // 同学打断刷题的概率(每秒)
         blackoutN: 4, blackoutSec: 9,   // 断电次数与每次时长
         repairMs: 85, repairAdd: 3, doorDmg: 13,
         subGrace: 7
@@ -55,11 +59,16 @@ const DIFF = {
         backP: 0.48, fwdP: 0.95, retreatP: 0.74,
         clsUp: 5.0, clsDown: 22, jcPush: true,
         studyRate: 0.34, target: 92,  // 刷题速度(%/秒) 与达标线
+        clsInterrupt: 0.055,        // 同学打断刷题的概率(每秒)
         blackoutN: 4, blackoutSec: 8,   // 断电次数与每次时长
         repairMs: 95, repairAdd: 3, doorDmg: 15,
         subGrace: 7
     }
 };
+
+const INTERRUPT_AT = 50;  // 捣乱值到多少，同学才会来打断你
+const INTERRUPT_CD = 15;  // 打断冷却（秒），防止连续骚扰
+const JC_GRACE = 3;       // JC 开门后，主教练给玩家的关门宽限（秒）
 
 const FLOW_SEC = 30;      // 连续刷题多久进入心流
 const FLOW_MULT = 1.3;    // 心流时效率倍率
@@ -115,6 +124,13 @@ const ACH = [
       desc:'进度刷到达标线的 1.5 倍' },
     { id:'insomnia',  lvl:'B', name:'熬了个寂寞',
       desc:'活到了 23:00，可题一道都没刷完' },
+
+    { id:'noisy',     lvl:'B', name:'注意纪律',
+      desc:'一局内被同学打断 5 次' },
+    { id:'focused',   lvl:'A', name:'心无旁骛',
+      desc:'刷题占比 ≥45%，且全程一次都没被打断' },
+    { id:'savior',    lvl:'S', name:'极限救门',
+      desc:'同学在门口把你门撞开、主教练站在门口，你还是在宽限期内把门关回去了' },
 ];
 
 const LVL_SCORE = { C: 80, B: 150, A: 300, S: 500 };
@@ -214,10 +230,16 @@ function renderBoard() {
 /* ---------------- 成就解锁 ---------------- */
 function unlock(id) {
     if (!state || state.gameOver === 'settling') return;
-    if (save.unlocked[id]) return;                 // 已永久解锁
-    save.unlocked[id] = true;
-    writeSave();
-    state.runAch.push(id);                         // 本局解锁（用于结算加分）
+    const isFirst = !save.unlocked[id];
+    if (isFirst) {
+        save.unlocked[id] = true;
+        writeSave();
+    }
+    /* 本局达成即计分（不管是不是首次）。
+       曾经写成"只有首次才计分"，导致同样的表现第二局分数暴跌一千多，
+       而且和模拟器校准评级时的口径不一致 —— 模拟器是按每局达成算的。 */
+    if (state.runAch.indexOf(id) < 0) state.runAch.push(id);
+    if (!isFirst) return;                          // 只有首次才弹提示（收集乐趣独立）
     const a = ACH_BY_ID[id];
     toastAch(a);
     beep(880, 0.12, 'triangle', 0.06);
@@ -270,13 +292,19 @@ const RANK_DESC = {
 /* 难度决定评级上限：简单刷不出 S，普通刷不出 SS，史诗才够得到 SSS */
 const RANK_CAP = { easy: 'A', normal: 'S', hard: 'SS', hell: 'SS', epic: 'SSS' };
 
+/* 门槛用 sim_v3.js 校准：取各难度【真通关局】的分数分位。
+      A  ≈ 简单档 p50  —— 简单档打得好才够
+      S  ≈ 普通档 p95  —— 普通档 top 5%，"玩十把能摸到"
+      SS ≈ 困难档 p90  —— 困难/地狱接近完美
+      SSS≈ 史诗档 p90  —— 史诗 top 10%，非常难得
+   旧门槛 S 只要 2400，十把里有九把能拿，太水了。 */
 function rawRank(s) {
-    if (s >= 6300) return 'SSS';
-    if (s >= 3300) return 'SS';
-    if (s >= 2400) return 'S';
-    if (s >= 1700) return 'A';
-    if (s >= 1100) return 'B';
-    if (s >= 600)  return 'C';
+    if (s >= 7700) return 'SSS';
+    if (s >= 4700) return 'SS';
+    if (s >= 4000) return 'S';
+    if (s >= 3350) return 'A';
+    if (s >= 1400) return 'B';
+    if (s >= 700)  return 'C';
     return 'D';
 }
 function rankOf(s, key) {
@@ -489,6 +517,10 @@ function startGame(key) {
         clsPeak: 0,                // 捣乱值峰值
         bladeDone: false,
 
+        doorGrace: 0,              // JC 开门后的反应宽限
+        interruptCount: 0,         // 被同学打断次数
+        lastInterruptSec: -999,    // 上次被打断的时刻
+
         /* ---- 断电 ---- */
         blackout: false,           // 是否正在断电
         blackoutLeft: 0,           // 剩余秒数
@@ -546,6 +578,10 @@ function aiLoop() {
                     state.coachMainPos = 1;
                     log('主教练撞了几下门，退回走廊。');
                 }
+            } else if (state.doorGrace > 0) {
+                // 宽限期内：他在门外犹豫 —— 这是你最后的机会
+                log('主教练站在敞开的门口 —— 快关门！');
+                if (state.isGameOpen) { shake(); beep(150, 0.3, 'sawtooth', 0.09); }
             } else {
                 endGame(false, '门开着。主教练推门走了进来。');
                 return;
@@ -608,6 +644,34 @@ function secondLoop() {
 
     state.totalSec++;
     if (!state.isGameOpen) state.studySec++;
+
+    /* --- JC 开门后的反应宽限 --- */
+    if (state.doorGrace > 0) state.doorGrace--;
+
+    /* --- 同学打断刷题 ---
+       你在刷题时，同学会来捣乱把你拽回监控。
+       这是对"一直刷题"策略的直接反制：刷得越久，被拽出来的风险越大。 */
+    const itp = D.clsInterrupt || 0;
+    if (itp > 0 && !state.isGameOpen && !state.blackout &&
+        state.subDanger <= 0 &&
+        state.cls >= INTERRUPT_AT &&
+        state.totalSec - state.lastInterruptSec >= INTERRUPT_CD) {
+        if (Math.random() < itp) {
+            state.lastInterruptSec = state.totalSec;
+            state.interruptCount++;
+            state.streak = 0;                 // 心流中断
+            state.isGameOpen = true;          // 被迫抬起头
+            dom['study-screen'].classList.add('hidden');
+            dom['monitor-screen'].classList.remove('hidden');
+            dom['btn-door'].disabled = false;
+            dom['btn-repair'].disabled = false;
+            log('同学在教室里搞事，你不得不抬头看一眼 —— 专注中断！');
+            beep(240, 0.3, 'square', 0.08);
+            shake();
+            switchCam('classroom');
+            updateBars();
+        }
+    }
 
     /* --- 刷题进度 + 心流 --- */
     if (!state.isGameOpen) {
@@ -738,26 +802,34 @@ function classmateJC() {
     state.clsJcCount++;
     const parts = [];
 
-    /* 关键平衡修正：
-       如果主教练已经堵在门口，JC 就不再开门。
-       否则会出现无解死 —— 副教练危机逼你刷题 7 秒，期间没法关门，
-       同学这时开门 + 主教练进门 = 必死，玩家什么都做不了。
-       模拟器实测：不加这条，地狱难度胜率只有 9.7%；加了之后 41%。 */
-    if (state.coachMainPos < 2) {
-        if (state.isDoorClosed) {
-            state.isDoorClosed = false;
-            parts.push('大门被打开');
-            syncDoorBtn();
-        }
-        if (D.jcPush) {
-            state.coachMainPos++;
-            parts.push('主教练前进一步');
-        }
+    /* 现在的规则：JC 一定把门打开 —— 不管主教练在哪。
+       这正是 JC 最吓人的地方：同学把你卖了，而教练正好在门口。 */
+    const mainAtDoor = state.coachMainPos === 2;
+    if (state.isDoorClosed) {
+        state.isDoorClosed = false;
+        parts.push('大门被打开');
+        syncDoorBtn();
+    } else {
+        parts.push('大门本来就没关');
     }
-    if (!parts.length) parts.push('他跑到门口想开门，但主教练正堵在那儿');
+    if (D.jcPush && state.coachMainPos < 2) {
+        state.coachMainPos++;
+        parts.push('主教练前进一步');
+    }
+
+    /* 反应宽限：门被撞开后给 3 秒，主教练不会立刻冲进来。
+       没有这个就是"什么都做不了的必死"，那不叫难度叫惩罚。 */
+    if (mainAtDoor || state.coachMainPos === 2) {
+        state.doorGrace = JC_GRACE;
+        parts.push(`主教练就在门口！${JC_GRACE} 秒内把门关回去`);
+    }
 
     log('同学 JC 了你：' + parts.join('，') + '！');
-    beep(300, 0.35, 'square', 0.07);
+    beep(mainAtDoor ? 180 : 300, 0.45, 'square', mainAtDoor ? 0.12 : 0.07);
+    if (mainAtDoor) {
+        setTimeout(() => beep(140, 0.5, 'sawtooth', 0.1), 220);
+        shake(); setTimeout(shake, 300);
+    }
     shake();
     renderCam();
     updateBars();
@@ -1045,6 +1117,12 @@ function syncDoorBtn() {
 
 function toggleDoor() {
     if (state.gameOver || !state.isGameOpen || state.isRepairing) return;
+
+    /* 极限救门：同学刚把门撞开、主教练就站在门口，你在宽限期内把门关回去 */
+    if (!state.isDoorClosed && state.doorGrace > 0 && state.coachMainPos === 2) {
+        unlock('savior');
+    }
+
     state.isDoorClosed = !state.isDoorClosed;
     syncDoorBtn();
     beep(state.isDoorClosed ? 300 : 200, 0.08, 'square', 0.05);
@@ -1124,6 +1202,8 @@ function endGame(win, reason) {
     const ratio = state.totalSec > 0 ? state.studySec / state.totalSec : 0;
     if (ratio >= 0.45) unlock('grinder');
     if (ratio >= 0.80) unlock('honest');
+    if (state.interruptCount >= 5) unlock('noisy');
+    if (ratio >= 0.45 && state.interruptCount === 0) unlock('focused');
 
     /* ---- 跨局成就 ---- */
     save.runs++;
@@ -1158,7 +1238,8 @@ function endGame(win, reason) {
         `坚持 ${sc.hours} 小时　·　难度 ${D.name}　·　被 JC ${state.clsJcCount} 次<br>` +
         `题目进度 ${Math.floor(state.progress)}% ／ 达标 ${D.target}%　·　` +
         `剩余门耐久 ${Math.round(state.doorDurability)}%<br>` +
-        `刷题占比 ${(ratio * 100).toFixed(0)}%　·　最长连续专注 ${state.maxStreak} 秒`;
+        `刷题占比 ${(ratio * 100).toFixed(0)}%　·　最长连续专注 ${state.maxStreak} 秒` +
+        (state.interruptCount ? `<br>被同学打断 ${state.interruptCount} 次` : '');
 
     dom['score-box'].className = 'score-box rank-' + rank;
     dom['score-box'].innerHTML =
@@ -1179,12 +1260,12 @@ function endGame(win, reason) {
                      : (prevBest ? `<div class="s-old">历史最佳 ${prevBest.score}（${prevBest.rank}）</div>` : '')}`;
 
     dom['run-ach'].innerHTML = state.runAch.length
-        ? '<div class="ra-title">🏆 本局解锁</div>' +
+        ? '<div class="ra-title">🏆 本局达成</div>' +
           state.runAch.map(id => {
               const a = ACH_BY_ID[id];
               return `<span class="ra-item lv-${a.lvl}">${a.lvl} · ${a.name}</span>`;
           }).join('')
-        : '<div class="ra-none">本局没有解锁新成就 —— 换个打法试试？</div>';
+        : '<div class="ra-none">本局没有达成任何成就 —— 换个打法试试？</div>';
 
     renderAchWall();
     renderBest();

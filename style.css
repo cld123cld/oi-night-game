@@ -599,3 +599,8 @@ body {
 .cls-warn.lv1 { color: #4a5a4a; }
 .cls-warn.lv2 { color: #aa8822; }
 .cls-warn.lv3 { color: var(--red); font-weight: bold; animation: blink 1s infinite; }
+
+/* ============ 新机制说明用高亮 ============ */
+b.hot { color: var(--red) !important; text-shadow: 0 0 8px rgba(255,60,60,.4); }
+.rl span { display: block; font-size: .85em; color: #555; margin-top: 2px; }
+.rl.rank-SSS span { color: #8a5a7a; }
